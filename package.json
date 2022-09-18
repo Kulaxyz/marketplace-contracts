@@ -32,6 +32,9 @@
     "timeout": 10000000
   },
   "dependencies": {
+    "@pinata/sdk": "^1.1.26",
+    "express-form-data": "^2.0.18",
+    "multiparty": "^4.2.3",
     "mysql": "^2.18.1",
     "pg": "^8.8.0"
   }

@@ -119,6 +119,10 @@ contract Marketplace is ReentrancyGuard {
         emit ListingCancelled(nftContractAddress, tokenId);
     }
 
+    function ping() external pure returns (string memory) {
+        return "pong";
+    }
+
     function updateListingPrice(address nftContractAddress, uint256 tokenId, uint256 newPrice)
     external
     onlyListed(nftContractAddress, tokenId)

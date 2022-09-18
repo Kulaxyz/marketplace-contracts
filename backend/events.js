@@ -276,7 +276,7 @@ async function main() {
 
     const contractWithSigner = contract.connect(wallet);
 
-    contractWithSigner.on("ListingAdded", (nftContractAddress, tokenId, price, event) => {
+    contractWithSigner.on("ListingAdded", async (nftContractAddress, tokenId, price, event) => {
         // console.log("ListingAdded", nftContractAddress, tokenId.toString(), price.toString());
         // console.log("Event hash: ", event.transactionHash);
 
@@ -286,29 +286,32 @@ async function main() {
     //         `token_id`     varchar(255)     NOT NULL,
     //         `price`   int(64)         NOT NULL,
     //         `address` varchar(255)  NOT NULL,
+    //         `seller` varchar(255)  NOT NULL,
     //         PRIMARY KEY (token_id, address)
     // ) ENGINE = InnoDB
     //     DEFAULT CHARSET = utf8mb4;
-
+        const tx = await event.getTransaction()
         connection.query('INSERT INTO listing_added SET ? ON DUPLICATE KEY UPDATE price=VALUES(price)', {
             hash: event.transactionHash,
             token_id: tokenId,
             price: price,
-            address: nftContractAddress
+            address: nftContractAddress,
+            seller: tx.from
         }, function (error, results, fields) {
             if (error) throw error;
             console.log(results.insertId);
         });
 
-        // connection.query('INSERT INTO active_listings SET ?', {
-        //     hash: event.transactionHash,
-        //     token_id: tokenId,
-        //     price: price,
-        //     address: nftContractAddress
-        // }, function (error, results, fields) {
-        //     if (error) throw error;
-        //     console.log(results.insertId);
-        // });
+        connection.query('INSERT INTO active_listings SET ?', {
+            hash: event.transactionHash,
+            token_id: tokenId,
+            price: price,
+            address: nftContractAddress,
+            seller: tx.from
+        }, function (error, results, fields) {
+            if (error) throw error;
+            console.log(results.insertId);
+        });
     })
 
     contractWithSigner.on("ListingCancelled", (nftContractAddress, tokenId, event) => {
@@ -336,17 +339,17 @@ async function main() {
     // address indexed buyer, address indexed nftContract, uint256 indexed tokenId, uint256 price
     contractWithSigner.on("NftBought", (buyer, nftContract, tokenId, price, event) => {
         // console.log("NftBought", buyer, nftContract, tokenId.toString(), price.toString());
-        connection.query('INSERT INTO nft_bought SET ?', {
+        connection.query('INSERT INTO nft_bought SET ? ON DUPLICATE KEY UPDATE price=VALUES(price)', {
             hash: event.transactionHash,
             buyer: buyer,
-            nft_contract: nftContract,
-            token_id: tokenId,
+            address: nftContract,
+            token_id: tokenId.toString(),
             price: price
         });
 
         connection.query(
             'DELETE FROM active_listings WHERE token_id = ? AND address = ?',
-            [tokenId, nftContractAddress],
+            [tokenId.toString(), nftContract],
             function (error, results, fields) {
                 if (error) throw error;
                 console.log(results.affectedRows);
